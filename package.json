@@ -3,24 +3,47 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node --use-system-ca node_modules/next/dist/bin/next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "node --use-system-ca node_modules/next/dist/bin/next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:scenario": "node --conditions=react-server --import tsx scripts/scenario-test.ts",
+    "test:multiroom": "node --conditions=react-server --import tsx scripts/multiroom-scenario-test.ts",
+    "test:achievements": "node --conditions=react-server --import tsx scripts/achievement-scenario-test.ts",
+    "max:preview": "node --use-system-ca --conditions=react-server --import tsx scripts/send-max-preview.ts",
+    "notifications:smoke": "node --use-system-ca --conditions=react-server --import tsx scripts/send-notification-smoke.ts",
+    "db:init": "node --conditions=react-server --import tsx scripts/init-db.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "@vercel/blob": "^2.8.0",
+    "jose": "^6.2.10",
+    "lucide-react": "^1.38.0",
     "next": "16.3.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
+    "three": "^0.185.1",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.185.4",
+    "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.23.13",
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }

@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Золотая Саванна: Путь к Вершине
 
-## Getting Started
+Внутренняя командная онлайн-игра LEVITA: участники получают броски за продажи, проходят 60-клеточную карту, открывают подарки и выполняют задания. Первый игрок, достигший клетки 60, завершает сезон.
 
-First, run the development server:
+## Что уже реализовано
 
-```bash
+- любое количество изолированных комнат, в каждой до 12 участников, роли владельца, руководителя, игрока и наблюдателя;
+- публичное создание комнаты, одна постоянная ссылка на комнату и отдельный PIN каждого участника, включая владельца и руководителей;
+- вход руководителя с любого устройства по общей ссылке и личному PIN с автоматическим переходом в кабинет; свой PIN можно безопасно заменить в настройках комнаты;
+- создание игрока руководителем без регистрационной ссылки: имя, команда, персонаж и автоматически сгенерированный PIN;
+- стартовый шаблон каждой новой комнаты — утверждённая карта тестовой комнаты с 54 настроенными клетками, 10 заданиями и закреплёнными денежными наградами;
+- 12 оригинальных персонажей саванны: львы, мандрил, жираф, зебра, кабанчик, лемур, сурикат, слонёнок, птица, гиена и обезьянка;
+- авторская 2D-карта саванны и длинный зигзагообразный путь из 60 программных клеток с точными координатами;
+- серверный случайный бросок, активная 3–5-секундная анимация объёмного кубика прямо на карте, плавное поклеточное движение фишки и отдельный итог хода после остановки;
+- ручное начисление бросков руководителем, начисление всем участникам одной продажи и отмена ошибочного начисления;
+- срок броска 72 часа, пауза всех таймеров игрока во время блокирующего задания;
+- препятствия, ускорения, дополнительный бросок, скрытые сюрпризы, задания и сокровища;
+- личный кабинет наград и выбор Ozon / Wildberries / Золотого Яблока для сертификата;
+- кабинет руководителя: игроки и PIN, общая ссылка, броски, задания, подарки, финальный приз, доступы и новый сезон;
+- конструктор игрового поля: руководитель назначает клетке роль и собственный текст задания, события или конкретную награду;
+- завершение сезона по победе или дате, аннулирование оставшихся бросков;
+- отдельные настройки MAX и Telegram у каждой комнаты; параллельные уведомления никогда не попадают в чат другого прайда;
+- напоминания о бросках за 24 и 3 часа, ежедневная резервная копия с хранением 14 копий;
+- сохранение невыданных подарков и финальных призов между сезонами;
+- летопись завершённого сезона доступна 7 дней.
+
+Подробные правила находятся в [docs/GAME_RULES.md](docs/GAME_RULES.md), инструкция публикации — в [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## Локальный запуск
+
+Требуется Node.js 20+.
+
+```powershell
+Copy-Item .env.example .env.local
+npm install
+npm run db:init
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте `http://localhost:3000` и нажмите «Создать комнату». Для совместимости в новой локальной базе также создаётся демонстрационная комната с владельцем и PIN `2468`, если в `.env.local` не задан другой `OWNER_PIN`. Локальная база хранится в `data/golden-savanna.db` и не попадает в Git.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Проверки
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+npm run typecheck
+npm run lint
+npm test
+npm run test:scenario
+npm run test:multiroom
+npm run build
+```
 
-## Learn More
+Основной сценарий проверяет механику игры. Многокомнатный сценарий отдельно проверяет клонирование стартовой карты, независимые настройки одинаковой клетки, создание игроков и PIN, запрет действий между комнатами и раздельные реквизиты ботов.
 
-To learn more about Next.js, take a look at the following resources:
+## Стек
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Next.js 16, React 19, TypeScript и Tailwind CSS;
+- libSQL: локальный SQLite для разработки, Turso для Vercel;
+- Vercel Cron для напоминаний и резервных копий;
+- Vercel Blob для приватных сжатых JSON-копий;
+- MAX Bot API и Telegram Bot API для независимой отправки сообщений в общие чаты.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+На Vercel нельзя использовать файл SQLite как постоянное хранилище: серверные функции могут перезапускаться, а их файловая система не предназначена для сохранения игровых данных. Поэтому production-конфигурация требует Turso.
 
-## Deploy on Vercel
+## Важное ограничение
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Проект сделан для внутреннего использования. Визуальный мир вдохновлён атмосферой приключений в африканской саванне, но приложение не является официальным продуктом Disney и не должно распространяться как лицензированная игра «Король Лев».
