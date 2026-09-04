@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   Gift,
+  KeyRound,
   Link2,
   LoaderCircle,
   LockKeyhole,
@@ -67,6 +68,7 @@ export function ManagerDashboard({ viewer, initialState }: { viewer: Viewer; ini
   const [notice, setNotice] = useState("");
   const [invite, setInvite] = useState<{ url: string; pin: string } | null>(null);
   const [createdPlayer, setCreatedPlayer] = useState<{ roomUrl: string; pin: string; displayName: string } | null>(null);
+  const [resetPinResult, setResetPinResult] = useState<{ membershipId: string; displayName: string; pin: string } | null>(null);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [newPlayerBranch, setNewPlayerBranch] = useState("");
   const [newPlayerAvatar, setNewPlayerAvatar] = useState<string>(avatars[0].key);
@@ -90,6 +92,10 @@ export function ManagerDashboard({ viewer, initialState }: { viewer: Viewer; ini
 
   const players = useMemo(
     () => data.members.filter((member) => s(member, "role") !== "observer"),
+    [data.members],
+  );
+  const managedPlayers = useMemo(
+    () => data.members.filter((member) => s(member, "role") === "player"),
     [data.members],
   );
   const awardedValue = data.rewards
@@ -176,6 +182,15 @@ export function ManagerDashboard({ viewer, initialState }: { viewer: Viewer; ini
       setNewPlayerName("");
       setNewPlayerBranch("");
       setNotice("Игрок создан. Передайте ему общую ссылку комнаты и личный PIN.");
+    }
+  }
+
+  async function resetPlayerPin(membershipId: string, displayName: string) {
+    if (!window.confirm(`Создать новый PIN для игрока «${displayName}»? Старый PIN и все открытые сессии перестанут работать.`)) return;
+    const result = await post("/api/manager/player-pin", { membershipId }, `player-pin-${membershipId}`);
+    if (result) {
+      setResetPinResult(result as { membershipId: string; displayName: string; pin: string });
+      setNotice(`Для ${displayName} создан новый PIN. Передайте его игроку — старый PIN уже отключён.`);
     }
   }
 
@@ -303,6 +318,49 @@ export function ManagerDashboard({ viewer, initialState }: { viewer: Viewer; ini
                 </article>
               )) : <div className="mini-empty">Нет ожидающих бросков</div>}
             </div>
+          </section>
+          <section className="manager-card player-access-card">
+            <div className="section-heading"><div><p className="eyebrow">Управление доступом</p><h2>Все игроки комнаты</h2></div><KeyRound /></div>
+            <p>Текущие PIN-коды защищены и не отображаются. Если игрок потерял PIN или вошёл не в свой профиль, создайте ему новый.</p>
+            <div className="player-access-list">
+              {managedPlayers.length ? managedPlayers.map((member) => {
+                const membershipId = s(member, "membership_id");
+                const displayName = s(member, "display_name");
+                return (
+                  <article key={membershipId}>
+                    <AvatarPortrait className="leader-avatar" avatarKey={s(member, "avatar_key")} title={displayName} />
+                    <div>
+                      <b>{displayName}</b>
+                      <small>{s(member, "branch") || "Без студии"} · клетка {n(member, "position")} · бросков {n(member, "available_rolls")}</small>
+                    </div>
+                    <button
+                      className="outline-button"
+                      type="button"
+                      disabled={pending === `player-pin-${membershipId}`}
+                      onClick={() => resetPlayerPin(membershipId, displayName)}
+                    >
+                      {pending === `player-pin-${membershipId}` ? <LoaderCircle className="spin" /> : <KeyRound />}
+                      Сменить PIN
+                    </button>
+                  </article>
+                );
+              }) : <div className="mini-empty">В комнате пока нет игроков</div>}
+            </div>
+            {resetPinResult && (
+              <div className="invite-result reset-pin-result">
+                <span><small>Новый PIN для игрока</small><b>{resetPinResult.displayName}</b></span>
+                <span><small>Личный PIN</small><b className="invite-pin">{resetPinResult.pin}</b></span>
+                <p>Код показывается только сейчас. Скопируйте и передайте его игроку лично.</p>
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(`Вход в игру «${s(data.room, "name")}": ${window.location.origin}${roomPath}\nВаш новый личный PIN: ${resetPinResult.pin}`);
+                    setNotice(`Новый PIN для ${resetPinResult.displayName} скопирован.`);
+                  }}
+                ><Copy /> Скопировать ссылку и новый PIN</button>
+              </div>
+            )}
           </section>
         </div>
       )}

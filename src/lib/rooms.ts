@@ -216,6 +216,43 @@ export async function createRoomPlayer(viewer: Viewer, input: CreatePlayerInput)
   });
 }
 
+export async function resetRoomPlayerPin(viewer: Viewer, membershipId: string) {
+  const now = new Date().toISOString();
+
+  return writeTransaction(async (tx) => {
+    const targetResult = await tx.execute({
+      sql: `SELECT m.user_id, m.role, u.display_name
+        FROM memberships m
+        JOIN users u ON u.id = m.user_id
+        WHERE m.id = ? AND m.room_id = ? AND m.is_active = 1
+        LIMIT 1`,
+      args: [membershipId, viewer.roomId],
+    });
+    const target = targetResult.rows[0];
+    if (!target) throw new HttpError(404, "Игрок не найден в этой комнате.");
+    if (String(target.role) !== "player") {
+      throw new HttpError(400, "Здесь можно менять PIN только игрокам. PIN руководителя меняется в разделе доступа.");
+    }
+
+    const rawPin = await availableRoomPin(tx, viewer.roomId);
+    const pin = await hashPin(rawPin);
+    await tx.execute({
+      sql: "UPDATE users SET pin_hash = ?, pin_salt = ? WHERE id = ?",
+      args: [pin.hash, pin.salt, String(target.user_id)],
+    });
+    await tx.execute({
+      sql: "UPDATE sessions SET revoked_at = ? WHERE membership_id = ? AND revoked_at IS NULL",
+      args: [now, membershipId],
+    });
+
+    return {
+      membershipId,
+      displayName: String(target.display_name),
+      pin: rawPin,
+    };
+  });
+}
+
 export async function updateRoomNotificationSettings(
   viewer: Viewer,
   settings: RoomNotificationSettings,

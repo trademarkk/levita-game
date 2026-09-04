@@ -561,6 +561,16 @@ input:focus, select:focus { border-color: #c68c2d; box-shadow: 0 0 0 3px rgba(23
 .data-list b { font-size: 11px; }
 .data-list p { margin: 3px 0; color: var(--ink-soft); font-size: 10px; }
 .data-list small { color: #929993; font-size: 8px; }
+.player-access-card { grid-column: 1/-1; }
+.player-access-list { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 18px; }
+.player-access-list article { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: center; gap: 11px; border: 1px solid rgba(47,65,54,.1); border-radius: 15px; padding: 11px; background: rgba(255,255,255,.72); }
+.player-access-list article > div { display: grid; min-width: 0; gap: 3px; }
+.player-access-list b { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.player-access-list small { color: var(--ink-soft); font-size: 9px; }
+.player-access-list .outline-button { min-height: 38px; padding: 0 12px; font-size: 9px; }
+.player-access-list .outline-button svg { width: 15px; }
+.reset-pin-result { max-width: 520px; margin-top: 16px; }
+.reset-pin-result p { margin: 0; color: #7b6840; font-size: 10px; }
 .danger-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border: 1px solid #e4c0ba; border-radius: 10px; color: #a9493f; background: #fff8f6; cursor: pointer; }
 .danger-icon svg { width: 16px; }
 .mini-empty { border: 1px dashed var(--line); border-radius: 13px; padding: 22px; color: #8c948f; font-size: 12px; text-align: center; }
@@ -698,6 +708,9 @@ input:focus, select:focus { border-color: #c68c2d; box-shadow: 0 0 0 3px rgba(23
   .room-url-box { grid-template-columns: 1fr; }
   .manager-avatar-picker { grid-template-columns: repeat(4,1fr); }
   .member-select-list { grid-template-columns: 1fr; }
+  .player-access-list { grid-template-columns: 1fr; }
+  .player-access-list article { grid-template-columns: 42px minmax(0,1fr); }
+  .player-access-list .outline-button { grid-column: 1/-1; }
   .task-review-grid { grid-template-columns: 1fr; }
   .cell-editor-layout { width: min(100% - 18px,1240px); }
   .cell-editor-grid { grid-template-columns: repeat(6,1fr); gap: 6px; }

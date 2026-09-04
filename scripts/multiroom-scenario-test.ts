@@ -16,7 +16,7 @@ async function main() {
   const { verifyPin } = await import("../src/lib/crypto");
   const { awardRolls } = await import("../src/lib/game");
   const { getManagerState, updateBoardCell } = await import("../src/lib/manager");
-  const { createRoom, createRoomPlayer, updateOwnRoomPin, updateRoomNotificationSettings } = await import("../src/lib/rooms");
+  const { createRoom, createRoomPlayer, resetRoomPlayerPin, updateOwnRoomPin, updateRoomNotificationSettings } = await import("../src/lib/rooms");
   await ensureDatabase();
 
   const endsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -98,6 +98,30 @@ async function main() {
   assert(/^\d{4}$/.test(playerA.pin) && /^\d{4}$/.test(playerB.pin), "players receive generated four-digit PINs");
   assert(playerA.pin !== "5555" && playerB.pin !== "5555", "generated player PIN never conflicts with an active PIN in the same room");
 
+  await query(
+    `INSERT INTO sessions (id, user_id, membership_id, token_hash, expires_at, created_at)
+     SELECT ?, user_id, id, ?, ?, ? FROM memberships WHERE id = ?`,
+    [randomUUID(), randomUUID(), new Date(Date.now() + 60_000).toISOString(), new Date().toISOString(), playerA.membershipId],
+  );
+  const resetPlayerA = await resetRoomPlayerPin(viewerA, playerA.membershipId);
+  assert(/^\d{4}$/.test(resetPlayerA.pin) && resetPlayerA.pin !== playerA.pin, "manager receives a new generated PIN for the selected player");
+  const changedPlayerCredential = await query(
+    `SELECT u.pin_hash, u.pin_salt FROM memberships m JOIN users u ON u.id = m.user_id
+     WHERE m.id = ? AND m.room_id = ? LIMIT 1`,
+    [playerA.membershipId, viewerA.roomId],
+  );
+  assert(await verifyPin(resetPlayerA.pin, String(changedPlayerCredential.rows[0].pin_hash), String(changedPlayerCredential.rows[0].pin_salt)), "new player PIN is stored for the selected account");
+  assert(!(await verifyPin(playerA.pin, String(changedPlayerCredential.rows[0].pin_hash), String(changedPlayerCredential.rows[0].pin_salt))), "old player PIN stops working after reset");
+  const resetSessions = await query("SELECT COUNT(*) AS count FROM sessions WHERE membership_id = ? AND revoked_at IS NULL", [playerA.membershipId]);
+  assert(Number(resetSessions.rows[0]?.count || 0) === 0, "resetting a player PIN revokes their active sessions");
+  let crossRoomPinResetRejected = false;
+  try {
+    await resetRoomPlayerPin(viewerA, playerB.membershipId);
+  } catch {
+    crossRoomPinResetRejected = true;
+  }
+  assert(crossRoomPinResetRejected, "a manager cannot reset a player PIN in another room");
+
   await updateOwnRoomPin(viewerA, "7777");
   const changedOwnerCredential = await query(
     `SELECT u.pin_hash, u.pin_salt FROM memberships m JOIN users u ON u.id = m.user_id
@@ -108,7 +132,7 @@ async function main() {
   assert(!(await verifyPin("5555", String(changedOwnerCredential.rows[0].pin_hash), String(changedOwnerCredential.rows[0].pin_salt))), "old manager PIN stops working after replacement");
   let duplicatePinRejected = false;
   try {
-    await updateOwnRoomPin(viewerA, playerA.pin);
+    await updateOwnRoomPin(viewerA, resetPlayerA.pin);
   } catch {
     duplicatePinRejected = true;
   }
